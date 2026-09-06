@@ -60,7 +60,7 @@ async function createEmbedding(text) {
   while (retries > 0) {
     try {
       const response = await ai.models.embedContent({
-        model: "text-embedding-004",
+        model: "embedding-001",
         contents: text,
       });
       return response.embedding?.values || response.embeddings?.[0]?.values;
