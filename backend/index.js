@@ -99,7 +99,7 @@ function cosineSimilarity(vecA, vecB) {
   return dotProduct;
 }
 
-app.get('/create-collection', async (req, res)=>{
+app.get('/api/create-collection', async (req, res)=>{
     try{
     await qdrant.createCollection('pdf-docs', {
       vectors: {
@@ -118,7 +118,7 @@ app.get("/", (req, res) => {
 });
 
 // --- Conversation APIs ---
-app.get("/conversations", checkAuth, async (req, res) => {
+app.get("/api/conversations", checkAuth, async (req, res) => {
   try {
     const conversations = await Conversation.find({ userId: req.auth.userId }).sort({ createdAt: -1 });
     res.json(conversations);
@@ -127,7 +127,7 @@ app.get("/conversations", checkAuth, async (req, res) => {
   }
 });
 
-app.post("/conversations", checkAuth, async (req, res) => {
+app.post("/api/conversations", checkAuth, async (req, res) => {
   try {
     const { title, pdfName } = req.body;
     const conversation = new Conversation({
@@ -143,7 +143,7 @@ app.post("/conversations", checkAuth, async (req, res) => {
   }
 });
 
-app.get("/conversations/:id", checkAuth, async (req, res) => {
+app.get("/api/conversations/:id", checkAuth, async (req, res) => {
   try {
     const conversation = await Conversation.findOne({ _id: req.params.id, userId: req.auth.userId });
     if (!conversation) {
@@ -155,7 +155,7 @@ app.get("/conversations/:id", checkAuth, async (req, res) => {
   }
 });
 
-app.delete("/conversations/:id", checkAuth, async (req, res) => {
+app.delete("/api/conversations/:id", checkAuth, async (req, res) => {
   try {
     const conversation = await Conversation.findOneAndDelete({ _id: req.params.id, userId: req.auth.userId });
     if (!conversation) {
@@ -167,7 +167,7 @@ app.delete("/conversations/:id", checkAuth, async (req, res) => {
   }
 });
 
-app.post("/upload", checkAuth, upload.single("pdf"), async (req, res) => {
+app.post("/api/upload", checkAuth, upload.single("pdf"), async (req, res) => {
   console.log(req.body);
 
   try {
