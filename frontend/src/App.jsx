@@ -67,6 +67,8 @@ function ChatApp() {
     try {
       setIsLoadingHistory(true);
       const token = await getToken();
+      console.log("[Auth Debug] Frontend token length:", token ? token.length : "null");
+      
       const res = await fetch('/api/conversations', {
         headers: { Authorization: `Bearer ${token}` }
       });

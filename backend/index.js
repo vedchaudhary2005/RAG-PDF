@@ -23,11 +23,27 @@ if (mongoUri) {
 app.use(express.json());
 app.use(express.static("public"))
 
-const { clerkMiddleware, requireAuth } = require('@clerk/express');
-app.use(clerkMiddleware());
+const { clerkMiddleware, getAuth } = require('@clerk/express');
+app.use(clerkMiddleware({
+  secretKey: process.env.CLERK_SECRET_KEY,
+  publishableKey: process.env.CLERK_PUBLISHABLE_KEY
+}));
+
+const checkAuth = (req, res, next) => {
+  const authState = getAuth(req);
+  console.log("[Auth Debug] Auth Header:", req.headers.authorization ? "Present" : "Missing");
+  console.log("[Auth Debug] getAuth(req) output:", JSON.stringify(authState));
+  
+  const { userId } = authState;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthenticated" });
+  }
+  req.auth = { userId }; // preserve req.auth for the routes below
+  next();
+};
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "",
 });
 
 async function createEmbedding(text) {
@@ -37,10 +53,10 @@ async function createEmbedding(text) {
   while (retries > 0) {
     try {
       const response = await ai.models.embedContent({
-        model: "gemini-embedding-2",
+        model: "gemini-embedding-001",
         contents: text,
       });
-      return response.embeddings[0].values;
+      return response.embedding?.values || response.embeddings?.[0]?.values;
     } catch (err) {
       const isUnavailable = err?.status === 503 || 
                             err?.status === "UNAVAILABLE" || 
@@ -78,24 +94,24 @@ function cosineSimilarity(vecA, vecB) {
 
 app.get('/create-collection', async (req, res)=>{
     try{
-        await qdrant.createCollection('pdf-docs', {
-            vectors:{
-                size: 3072,
-                distance: 'Cosine'
-            },
-        })
-        res.send('collection is created')
-    }catch(e){
-        res.send(500).send(e);
-    }
-})
+    await qdrant.createCollection('pdf-docs', {
+      vectors: {
+        size: 768,
+        distance: 'Cosine'
+      },
+    });
+    res.send('collection is created');
+  } catch (e) {
+    res.status(500).send(e);
+  }
+});
 
 app.get("/", (req, res) => {
   res.send("hey i am running");
 });
 
 // --- Conversation APIs ---
-app.get("/conversations", requireAuth(), async (req, res) => {
+app.get("/conversations", checkAuth, async (req, res) => {
   try {
     const conversations = await Conversation.find({ userId: req.auth.userId }).sort({ createdAt: -1 });
     res.json(conversations);
@@ -104,7 +120,7 @@ app.get("/conversations", requireAuth(), async (req, res) => {
   }
 });
 
-app.post("/conversations", requireAuth(), async (req, res) => {
+app.post("/conversations", checkAuth, async (req, res) => {
   try {
     const { title, pdfName } = req.body;
     const conversation = new Conversation({
@@ -120,7 +136,7 @@ app.post("/conversations", requireAuth(), async (req, res) => {
   }
 });
 
-app.get("/conversations/:id", requireAuth(), async (req, res) => {
+app.get("/conversations/:id", checkAuth, async (req, res) => {
   try {
     const conversation = await Conversation.findOne({ _id: req.params.id, userId: req.auth.userId });
     if (!conversation) {
@@ -132,7 +148,7 @@ app.get("/conversations/:id", requireAuth(), async (req, res) => {
   }
 });
 
-app.delete("/conversations/:id", requireAuth(), async (req, res) => {
+app.delete("/conversations/:id", checkAuth, async (req, res) => {
   try {
     const conversation = await Conversation.findOneAndDelete({ _id: req.params.id, userId: req.auth.userId });
     if (!conversation) {
@@ -144,7 +160,7 @@ app.delete("/conversations/:id", requireAuth(), async (req, res) => {
   }
 });
 
-app.post("/upload", requireAuth(), upload.single("pdf"), async (req, res) => {
+app.post("/upload", checkAuth, upload.single("pdf"), async (req, res) => {
   console.log(req.body);
 
   try {
