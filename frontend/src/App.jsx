@@ -46,6 +46,7 @@ function LandingPage() {
 
 function ChatApp() {
   const { getToken } = useAuth();
+  const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
   
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
@@ -69,7 +70,7 @@ function ChatApp() {
       const token = await getToken();
       console.log("[Auth Debug] Frontend token length:", token ? token.length : "null");
       
-      const res = await fetch('/api/conversations', {
+      const res = await fetch(`${API_BASE}/api/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -87,7 +88,7 @@ function ChatApp() {
     try {
       setIsLoading(true);
       const token = await getToken();
-      const res = await fetch(`/api/conversations/${id}`, {
+      const res = await fetch(`${API_BASE}/api/conversations/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -122,7 +123,7 @@ function ChatApp() {
   const handleDeleteChat = async (id) => {
     try {
       const token = await getToken();
-      await fetch(`/api/conversations/${id}`, { 
+      await fetch(`${API_BASE}/api/conversations/${id}`, { 
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -166,7 +167,7 @@ function ChatApp() {
       // If it's a new chat, create DB entry first
       if (!currentConvId) {
         const title = generateTitle(currentQuestion);
-        const res = await fetch('/api/conversations', {
+        const res = await fetch(`${API_BASE}/api/conversations`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -193,7 +194,7 @@ function ChatApp() {
         formData.append("conversationId", currentConvId);
       }
 
-      const uploadRes = await fetch("/api/upload", {
+      const uploadRes = await fetch(`${API_BASE}/api/upload`, {
         method: "POST",
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,

@@ -6,9 +6,10 @@ const fs = require("fs");
 require("dotenv").config();
 const { GoogleGenAI } = require("@google/genai");
 const upload = multer({ dest: "upload/" });
-const {QdrantClient} =  require ('@qdrant/js-client-rest');
+const {QdrantClient} = require('@qdrant/js-client-rest');
 const mongoose = require('mongoose');
 const Conversation = require('./models/Conversation');
+const cors = require('cors');
 
 // Connect to MongoDB
 const mongoUri = process.env.MONGODB_URL ? process.env.MONGODB_URL.trim() : "";
@@ -21,7 +22,13 @@ if (mongoUri) {
 }
 
 app.use(express.json());
-app.use(express.static("public"))
+app.use(express.static("public"));
+
+// CORS — allow requests from the deployed Vercel frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+}));
 
 const { clerkMiddleware, getAuth } = require('@clerk/express');
 app.use(clerkMiddleware({
@@ -53,7 +60,7 @@ async function createEmbedding(text) {
   while (retries > 0) {
     try {
       const response = await ai.models.embedContent({
-        model: "gemini-embedding-001",
+        model: "text-embedding-004",
         contents: text,
       });
       return response.embedding?.values || response.embeddings?.[0]?.values;
@@ -208,7 +215,7 @@ app.post("/upload", checkAuth, upload.single("pdf"), async (req, res) => {
 
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-1.5-flash",
       contents: `Answer the question using the context: ${bestChunk} and question is: ${question}`,
     });
     
@@ -237,6 +244,7 @@ app.post("/upload", checkAuth, upload.single("pdf"), async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("Sever is running on port 3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
