@@ -231,7 +231,7 @@ app.post("/api/upload", checkAuth, upload.single("pdf"), async (req, res) => {
 
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: `Answer the question using the context: ${bestChunk} and question is: ${question}`,
     });
     
