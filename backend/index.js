@@ -56,20 +56,35 @@ const ai = new GoogleGenAI({
 async function createEmbedding(text) {
   let retries = 3;
   let delay = 1000;
-  
+
+  const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "";
+  const url = `https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key=${apiKey}`;
+
   while (retries > 0) {
     try {
-      const response = await ai.models.embedContent({
-        model: "embedding-001",
-        contents: text,
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "models/text-embedding-004",
+          content: { parts: [{ text }] }
+        })
       });
-      return response.embedding?.values || response.embeddings?.[0]?.values;
+
+      if (!res.ok) {
+        const errData = await res.json();
+        const err = new Error(JSON.stringify(errData));
+        err.status = res.status;
+        throw err;
+      }
+
+      const data = await res.json();
+      return data.embedding.values;
+
     } catch (err) {
-      const isUnavailable = err?.status === 503 || 
-                            err?.status === "UNAVAILABLE" || 
-                            err?.error?.code === 503 ||
+      const isUnavailable = err?.status === 503 ||
                             err?.message?.includes("503");
-                            
+
       if (isUnavailable) {
         retries--;
         if (retries === 0) {
@@ -85,6 +100,7 @@ async function createEmbedding(text) {
     }
   }
 }
+
 
 const qdrant = new QdrantClient({
     url: process.env.QUADRANT_URL,
