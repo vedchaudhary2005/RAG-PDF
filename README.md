@@ -1,4 +1,5 @@
 PDF Intelligence
+![PDF Intelligence Screenshot](./assets/screenshot.png)
 
 AI-powered PDF Document Assistant that lets users upload a PDF and ask questions about its content. The application uses RAG (Retrieval-Augmented Generation) to retrieve relevant information from the uploaded document before generating an answer with Gemini.
 
